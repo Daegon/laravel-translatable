@@ -49,7 +49,7 @@ trait Translatable {
         }
         else
         {
-            $translation = null;
+            $translation = $this->getNewTranslation($locale);
         }
 
         return $translation;
