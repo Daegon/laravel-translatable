@@ -66,7 +66,7 @@ trait Translatable
         ) {
             $translation = $this->getTranslationByLocaleKey($this->getFallbackLocale());
         } else {
-            $translation = null;
+            $translation = $this->getNewTranslation($locale);
         }
 
         return $translation;
@@ -402,62 +402,6 @@ trait Translatable
     public function scopeTranslated(Builder $query)
     {
         return $query->has('translations');
-    }
-
-    /**
-     * Adds scope to get a list of translated attributes, using the current locale.
-     *
-     * Example usage: Country::scopeListsTranslations('name')->get()->toArray()
-     * Will return an array with items:
-     *  [
-     *      'id' => '1',                // The id of country
-     *      'name' => 'Griechenland'    // The translated name
-     *  ]
-     *
-     * @param \Illuminate\Database\Eloquent\Builder $query
-     * @param string                                $translationField
-     */
-    public function scopeListsTranslations(Builder $query, $translationField)
-    {
-        $withFallback = $this->useFallback();
-
-        $query
-            ->select($this->getTable().'.'.$this->getKeyName(), $this->getTranslationsTable().'.'.$translationField)
-            ->leftJoin($this->getTranslationsTable(), $this->getTranslationsTable().'.'.$this->getRelationKey(), '=', $this->getTable().'.'.$this->getKeyName())
-            ->where($this->getTranslationsTable().'.'.$this->getLocaleKey(), $this->locale())
-        ;
-        if ($withFallback) {
-            $query->orWhere(function (Builder $q) {
-                $q->where($this->getTranslationsTable().'.'.$this->getLocaleKey(), $this->getFallbackLocale())
-                    ->whereNotIn($this->getTranslationsTable().'.'.$this->getRelationKey(), function (QueryBuilder $q) {
-                        $q->select($this->getTranslationsTable().'.'.$this->getRelationKey())
-                            ->from($this->getTranslationsTable())
-                            ->where($this->getTranslationsTable().'.'.$this->getLocaleKey(), $this->locale());
-                    });
-            });
-        }
-    }
-
-    /**
-     * @return array
-     */
-    public function toArray()
-    {
-        $attributes = parent::toArray();
-
-        $hiddenAttributes = $this->getHidden();
-        
-        foreach ($this->translatedAttributes as $field) {
-            if (in_array($field, $hiddenAttributes)) {
-                continue;
-            }
-            
-            if ($translations = $this->getTranslation()) {
-                $attributes[$field] = $translations->$field;
-            }
-        }
-
-        return $attributes;
     }
 
     /**
